@@ -16,9 +16,7 @@ export default function Users() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("Member");
 
-  // =============================
   // Fetch users
-  // =============================
   const fetchUsers = async () => {
     const response = await api.get("/Users");
     setUsers(response.data);
@@ -28,9 +26,7 @@ export default function Users() {
     fetchUsers();
   }, []);
 
-  // =============================
   // Change role
-  // =============================
   const changeRole = async (id: string, newRole: string) => {
     await api.put(`/Users/${id}/role`, {
       role: newRole
@@ -39,9 +35,7 @@ export default function Users() {
     fetchUsers();
   };
 
-  // =============================
   // Create user
-  // =============================
   const createUser = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -58,9 +52,7 @@ export default function Users() {
     fetchUsers();
   };
 
-  // =============================
   // Delete user
-  // =============================
   const deleteUser = async (id: string) => {
     await api.delete(`/Users/${id}`);
     fetchUsers();
@@ -119,7 +111,7 @@ export default function Users() {
           </form>
         </div>
 
-        {/* USERS LIST */}
+        {/* Users list */}
         <div className="space-y-4">
           {users.map((user) => (
             <div
@@ -137,7 +129,7 @@ export default function Users() {
 
               <div className="flex gap-3 items-center">
 
-                {/* ROLE SELECT */}
+                {/* role select */}
                 <select
                   value={user.role}
                   onChange={(e) =>
@@ -150,7 +142,7 @@ export default function Users() {
                   <option value="Member">Member</option>
                 </select>
 
-                {/* DELETE BUTTON */}
+                {/* delete button */}
                 {currentUser?.userId !== user.id && (
                   <button
                     onClick={() => deleteUser(user.id)}

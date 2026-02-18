@@ -6,9 +6,12 @@ using WorkplaceTasks.API.DTOs;
 using WorkplaceTasks.API.Helpers;
 using WorkplaceTasks.API.Models;
 
+/// <summary>
+/// Manages user operations and role administration.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize] // Base protection
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -18,14 +21,15 @@ public class UsersController : ControllerBase
         _context = context;
     }
 
-    // =========================
-    // GET: /api/users
-    // Admin + Manager can list users
-    // =========================
+    /// <summary>
+    /// Returns list of users (Id, Email, Role).
+    /// Accessible by Admin and Manager.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> GetUsers()
     {
+        // Return minimal user data
         var users = await _context.Users
             .Select(u => new
             {
@@ -38,10 +42,10 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
-    // =========================
-    // PUT: /api/users/{id}/role
-    // Only Admin can change roles
-    // =========================
+    /// <summary>
+    /// Updates a user's role.
+    /// Only Admin can change roles.
+    /// </summary>
     [HttpPut("{id}/role")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateRole(
@@ -53,6 +57,7 @@ public class UsersController : ControllerBase
         if (user == null)
             return NotFound();
 
+        // Update role according to business rules
         user.Role = dto.Role;
 
         await _context.SaveChangesAsync();
@@ -60,14 +65,15 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
-    // =========================
-    // POST: /api/users
-    // Only Admin can create users
-    // =========================
+    /// <summary>
+    /// Creates a new user.
+    /// Only Admin can create users.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
     {
+        // Ensure email uniqueness
         if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
             return BadRequest("Email already exists.");
 
@@ -75,7 +81,10 @@ public class UsersController : ControllerBase
         {
             Id = Guid.NewGuid(),
             Email = dto.Email,
+
+            // Password stored securely using BCrypt hashing
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+
             Role = dto.Role
         };
 
@@ -85,10 +94,11 @@ public class UsersController : ControllerBase
         return Ok();
     }
 
-    // =========================
-    // DELETE: /api/users/{id}
-    // Only Admin can delete users
-    // =========================
+    /// <summary>
+    /// Deletes a user.
+    /// Only Admin can delete users.
+    /// Includes safety checks.
+    /// </summary>
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteUser(Guid id)
@@ -100,11 +110,11 @@ public class UsersController : ControllerBase
 
         var currentUserId = UserClaimsHelper.GetUserId(User);
 
-        // Prevent deleting yourself
+        // Prevent deleting your own account
         if (user.Id == currentUserId)
             return BadRequest("You cannot delete your own account.");
 
-        // Prevent deleting the last Admin
+        // Prevent deleting the last Admin in the system
         if (user.Role == UserRole.Admin)
         {
             var adminCount = await _context.Users

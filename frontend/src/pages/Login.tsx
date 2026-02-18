@@ -8,30 +8,37 @@ export default function Login() {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  // Form state
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
 
+  // Handles login request
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
+      // Call API login endpoint
       const response = await api.post("/Auth/login", {
         email,
         password
       });
 
+      // Store token in context
       login(response.data.token);
+
+      // Extract role from JWT
       const role =
         response.data.token &&
         jwtDecode<any>(response.data.token)[
-            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+          "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
         ];
 
-        if (role === "Admin") {
+      // Redirect based on role
+      if (role === "Admin") {
         navigate("/dashboard");
-        } else {
+      } else {
         navigate("/tasks");
-        }
+      }
 
     } catch {
       alert("Invalid credentials");
@@ -39,36 +46,36 @@ export default function Login() {
   };
 
   return (
-  <div className="min-h-screen flex items-center justify-center bg-slate-100">
-    <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-      <h2 className="text-2xl font-semibold text-slate-800 mb-6 text-center">
-        Sign in to your account
-      </h2>
+    <div className="min-h-screen flex items-center justify-center bg-slate-100">
+      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+        <h2 className="text-2xl font-semibold text-slate-800 mb-6 text-center">
+          Sign in to your account
+        </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400"
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        {/* Login form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400"
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400"
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <input
+            type="password"
+            placeholder="Password"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400"
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-        <button
-          type="submit"
-          className="w-full bg-slate-800 text-white py-2 rounded-lg hover:bg-slate-700 transition"
-        >
-          Login
-        </button>
-      </form>
+          <button
+            type="submit"
+            className="w-full bg-slate-800 text-white py-2 rounded-lg hover:bg-slate-700 transition"
+          >
+            Login
+          </button>
+        </form>
+      </div>
     </div>
-  </div>
-);
-
+  );
 }

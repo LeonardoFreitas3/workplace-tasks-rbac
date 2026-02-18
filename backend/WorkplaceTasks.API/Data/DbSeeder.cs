@@ -3,10 +3,14 @@ using BCrypt.Net;
 
 namespace WorkplaceTasks.API.Data;
 
+/// <summary>
+/// Seeds the database with initial test users.
+/// </summary>
 public static class DbSeeder
 {
     public static void Seed(AppDbContext context)
     {
+        // Prevent duplicate seeding
         if (context.Users.Any())
             return;
 

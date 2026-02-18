@@ -6,6 +6,9 @@ using WorkplaceTasks.API.DTOs;
 using WorkplaceTasks.API.Helpers;
 using WorkplaceTasks.API.Models;
 
+/// <summary>
+/// Manages task operations with RBAC rules.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -18,23 +21,22 @@ public class TasksController : ControllerBase
         _context = context;
     }
 
-    // =========================
-    // GET /tasks (com filtros + paginação)
-    // =========================
+    /// <summary>
+    /// Returns tasks with optional status filter and pagination.
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetTasks(
       [FromQuery] TaskItemStatus? status,
       [FromQuery] int page = 1,
       [FromQuery] int pageSize = 10)
     {
+        // Extract user info from JWT
         var userId = UserClaimsHelper.GetUserId(User);
         var role = UserClaimsHelper.GetUserRole(User);
 
         var query = _context.Tasks.AsQueryable();
 
-        // =========================
-        // RBAC filtering
-        // =========================
+        // Members can only see tasks they created or were assigned
         if (role == "Member")
         {
             query = query.Where(t =>
@@ -43,17 +45,13 @@ public class TasksController : ControllerBase
             );
         }
 
-        // =========================
-        // Status filter (ONLY once)
-        // =========================
+        // Apply optional status filter
         if (status.HasValue)
         {
             query = query.Where(t => t.Status == status.Value);
         }
 
-        // =========================
-        // Pagination
-        // =========================
+        // Server-side pagination
         var totalCount = await query.CountAsync();
 
         var tasks = await query
@@ -66,6 +64,8 @@ public class TasksController : ControllerBase
                 t.Title,
                 t.Description,
                 t.Status,
+                t.CreatedAt,
+                t.UpdatedAt,
                 t.CreatedById,
                 t.AssignedToId,
                 AssignedToEmail = t.AssignedTo != null ? t.AssignedTo.Email : null
@@ -81,11 +81,9 @@ public class TasksController : ControllerBase
         });
     }
 
-
-
-    // =========================
-    // POST /tasks
-    // =========================
+    /// <summary>
+    /// Creates a new task.
+    /// </summary>
     [HttpPost]
     public async Task<IActionResult> CreateTask([FromBody] CreateTaskDto dto)
     {
@@ -97,13 +95,13 @@ public class TasksController : ControllerBase
             Id = Guid.NewGuid(),
             Title = dto.Title,
             Description = dto.Description,
-            Status = TaskItemStatus.Pending, // default
+            Status = TaskItemStatus.Pending, // default status
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             CreatedById = userId
         };
 
-        // Only Admin or Manager can assign tasks
+        // Assignment allowed only for Admin and Manager
         if ((role == "Admin" || role == "Manager") && dto.AssignedToId.HasValue)
         {
             task.AssignedToId = dto.AssignedToId;
@@ -115,10 +113,9 @@ public class TasksController : ControllerBase
         return CreatedAtAction(nameof(GetTasks), new { id = task.Id }, task);
     }
 
-
-    // =========================
-    // PUT /tasks/{id}
-    // =========================
+    /// <summary>
+    /// Updates a task according to RBAC rules.
+    /// </summary>
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateTask(Guid id, UpdateTaskDto dto)
     {
@@ -130,25 +127,26 @@ public class TasksController : ControllerBase
         var userId = UserClaimsHelper.GetUserId(User);
         var role = UserClaimsHelper.GetUserRole(User);
 
+        // Admin and Manager have full edit access
         if (role == "Admin" || role == "Manager")
         {
             // Full access
         }
         else if (role == "Member")
         {
+            // If not creator, only allow status update if assigned
             if (task.CreatedById != userId)
             {
-                // Only allow status update if assigned
                 if (task.AssignedToId != userId || dto.Status == null)
                     return Forbid();
 
-                // Only update status
                 task.Status = dto.Status.Value;
                 await _context.SaveChangesAsync();
                 return NoContent();
             }
         }
 
+        // Apply updates if provided
         if (dto.Title != null)
             task.Title = dto.Title;
 
@@ -161,16 +159,18 @@ public class TasksController : ControllerBase
         if (dto.AssignedToId.HasValue)
             task.AssignedToId = dto.AssignedToId;
 
+        task.UpdatedAt = DateTime.UtcNow;
+
         await _context.SaveChangesAsync();
 
         return NoContent();
     }
 
-
-
-    // =========================
-    // DELETE /tasks/{id}
-    // =========================
+    /// <summary>
+    /// Deletes a task.
+    /// Admin can delete any task.
+    /// Others can delete only their own tasks.
+    /// </summary>
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTask(Guid id)
     {

@@ -1,6 +1,7 @@
 import type { User } from "../types/User";
 import type { Task } from "../types/Task";
 
+//Determines if a user can delete a task.
 export const canDeleteTask = (user: User | null, task: Task) => {
   if (!user) return false;
 
@@ -9,6 +10,8 @@ export const canDeleteTask = (user: User | null, task: Task) => {
   return task.createdById === user.userId;
 };
 
+
+// Determines if a user can edit a task.
 export const canEditTask = (user: User | null, task: Task) => {
   if (!user) return false;
 

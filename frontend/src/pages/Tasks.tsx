@@ -3,6 +3,7 @@ import api from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import type { Task } from "../types/Task";
 import { canDeleteTask, canEditTask } from "../utils/permissions";
+import Pagination from "../components/Pagination";
 
 interface UserDto {
   id: string;
@@ -12,10 +13,13 @@ interface UserDto {
 export default function Tasks() {
   const { user, logout } = useContext(AuthContext);
 
+  // =====================
+  // State
+  // =====================
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<UserDto[]>([]);
 
-  // Pagination & filter
+  // Pagination + filter
   const [page, setPage] = useState(1);
   const [pageSize] = useState(5);
   const [totalCount, setTotalCount] = useState(0);
@@ -23,24 +27,25 @@ export default function Tasks() {
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  // Create
+  // Create form
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [createAssignedTo, setCreateAssignedTo] = useState("");
 
-  // Edit
+  // Edit form
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editStatus, setEditStatus] = useState("Pending");
   const [editAssignedTo, setEditAssignedTo] = useState("");
 
-  // ===========================
-  // Fetch Tasks
-  // ===========================
+  // =====================
+  // Fetch tasks
+  // =====================
   const fetchTasks = async () => {
     const params: any = { page, pageSize };
 
+    // Only send filter if selected
     if (statusFilter !== "") {
       params.status = statusFilter;
     }
@@ -51,9 +56,7 @@ export default function Tasks() {
     setTotalCount(response.data.totalCount);
   };
 
-  // ===========================
-  // Fetch Users (Admin/Manager only)
-  // ===========================
+  // Fetch users (Admin/Manager)
   const fetchUsers = async () => {
     if (user?.role === "Admin" || user?.role === "Manager") {
       const response = await api.get("/Users");
@@ -66,14 +69,12 @@ export default function Tasks() {
   }, [page, statusFilter]);
 
   useEffect(() => {
-    if (user?.role === "Admin" || user?.role === "Manager") {
-      fetchUsers();
-    }
+    fetchUsers();
   }, [user]);
 
-  // ===========================
-  // Create Task
-  // ===========================
+  // =====================
+  // Create task
+  // =====================
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -92,17 +93,17 @@ export default function Tasks() {
     fetchTasks();
   };
 
-  // ===========================
-  // Delete Task
-  // ===========================
+  // =====================
+  // Delete task
+  // =====================
   const handleDelete = async (id: string) => {
     await api.delete(`/Tasks/${id}`);
     fetchTasks();
   };
 
-  // ===========================
-  // Start Edit
-  // ===========================
+  // =====================
+  // Start edit
+  // =====================
   const startEdit = (task: Task) => {
     setEditingTaskId(task.id);
     setEditTitle(task.title);
@@ -111,24 +112,31 @@ export default function Tasks() {
     setEditAssignedTo(task.assignedToId ?? "");
   };
 
-  // ===========================
-  // Update Task
-  // ===========================
+  // =====================
+  // Update task
+  // =====================
   const handleUpdate = async (id: string) => {
     await api.put(`/Tasks/${id}`, {
       title: editTitle,
       description: editDescription,
       status: editStatus,
-      assignedToId: editAssignedTo || null
+      assignedToId:
+        user?.role === "Admin" || user?.role === "Manager"
+          ? editAssignedTo || null
+          : undefined
     });
 
     setEditingTaskId(null);
     fetchTasks();
   };
 
-  // ===========================
-  // Status badge color
-  // ===========================
+  // =====================
+  // Helpers
+  // =====================
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString("pt-PT");
+  };
+
   const statusColor = (status: string) => {
     switch (status) {
       case "Pending":
@@ -142,15 +150,16 @@ export default function Tasks() {
     }
   };
 
+  // =====================
+  // UI
+  // =====================
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-6xl mx-auto">
 
         {/* HEADER */}
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-semibold text-slate-800">
-            Tasks
-          </h2>
+          <h2 className="text-2xl font-semibold text-slate-800">Tasks</h2>
 
           <div className="flex items-center gap-4">
             <span className="text-sm text-slate-500">
@@ -159,7 +168,7 @@ export default function Tasks() {
 
             <button
               onClick={logout}
-              className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition"
+              className="px-4 py-2 bg-slate-800 text-white rounded-lg"
             >
               Logout
             </button>
@@ -168,9 +177,7 @@ export default function Tasks() {
 
         {/* CREATE FORM */}
         <div className="bg-white p-6 rounded-xl shadow mb-8">
-          <h3 className="text-lg font-semibold mb-4 text-slate-700">
-            Create Task
-          </h3>
+          <h3 className="text-lg font-semibold mb-4">Create Task</h3>
 
           <form onSubmit={handleCreate} className="grid md:grid-cols-4 gap-4">
             <input
@@ -178,7 +185,7 @@ export default function Tasks() {
               placeholder="Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="border border-slate-300 px-4 py-2 rounded-lg"
+              className="border px-4 py-2 rounded-lg"
               required
             />
 
@@ -187,7 +194,7 @@ export default function Tasks() {
               placeholder="Description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="border border-slate-300 px-4 py-2 rounded-lg"
+              className="border px-4 py-2 rounded-lg"
               required
             />
 
@@ -195,7 +202,7 @@ export default function Tasks() {
               <select
                 value={createAssignedTo}
                 onChange={(e) => setCreateAssignedTo(e.target.value)}
-                className="border border-slate-300 px-4 py-2 rounded-lg"
+                className="border px-4 py-2 rounded-lg"
               >
                 <option value="">Unassigned</option>
                 {users.map((u) => (
@@ -208,7 +215,7 @@ export default function Tasks() {
 
             <button
               type="submit"
-              className="bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition"
+              className="bg-slate-800 text-white rounded-lg"
             >
               Create
             </button>
@@ -220,10 +227,10 @@ export default function Tasks() {
           <select
             value={statusFilter}
             onChange={(e) => {
-              setPage(1);
+              setPage(1); // reset page when filtering
               setStatusFilter(e.target.value);
             }}
-            className="border border-slate-300 px-3 py-2 rounded-lg"
+            className="border px-3 py-2 rounded-lg"
           >
             <option value="">All Status</option>
             <option value="Pending">Pending</option>
@@ -236,160 +243,146 @@ export default function Tasks() {
           </span>
         </div>
 
-        {/* TASK LIST */}
+        {/* task list */}
         <div className="bg-white rounded-xl shadow">
 
-        {tasks.length === 0 ? (
+          {tasks.length === 0 ? (
             <div className="py-20 text-center">
-            <p className="text-lg text-slate-400 font-medium">
+              <p className="text-lg text-slate-400">
                 In this moment there are no tasks to show
-            </p>
-            <p className="text-sm text-slate-300 mt-2">
-                Try creating a new task or adjusting the filters.
-            </p>
+              </p>
             </div>
-        ) : (
+          ) : (
             <div className="divide-y">
-            {tasks.map((task) => (
+              {tasks.map((task) => (
                 <div key={task.id} className="p-5">
 
-                {editingTaskId === task.id ? (
+                  {editingTaskId === task.id ? (
+
+                    // edit mode
                     <div className="grid md:grid-cols-5 gap-3">
 
-                    <input
+                      <input
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
                         className="border px-3 py-2 rounded-lg"
-                    />
+                      />
 
-                    <input
+                      <input
                         value={editDescription}
                         onChange={(e) => setEditDescription(e.target.value)}
                         className="border px-3 py-2 rounded-lg"
-                    />
+                      />
 
-                    <select
+                      <select
                         value={editStatus}
                         onChange={(e) => setEditStatus(e.target.value)}
                         className="border px-3 py-2 rounded-lg"
-                    >
+                      >
                         <option value="Pending">Pending</option>
                         <option value="InProgress">In Progress</option>
-                        <option value="Completed">Completed</option>
-                    </select>
+                        <option value="Done">Done</option>
+                      </select>
 
-                    {(user?.role === "Admin" || user?.role === "Manager") && (
+                      {(user?.role === "Admin" || user?.role === "Manager") && (
                         <select
-                        value={editAssignedTo}
-                        onChange={(e) => setEditAssignedTo(e.target.value)}
-                        className="border px-3 py-2 rounded-lg"
+                          value={editAssignedTo}
+                          onChange={(e) => setEditAssignedTo(e.target.value)}
+                          className="border px-3 py-2 rounded-lg"
                         >
-                        <option value="">Unassigned</option>
-                        {users.map((u) => (
+                          <option value="">Unassigned</option>
+                          {users.map((u) => (
                             <option key={u.id} value={u.id}>
-                            {u.email}
+                              {u.email}
                             </option>
-                        ))}
+                          ))}
                         </select>
-                    )}
+                      )}
 
-                    <div className="flex gap-2">
+                      <div className="flex gap-2">
                         <button
-                        onClick={() => handleUpdate(task.id)}
-                        className="text-green-600 text-sm"
+                          onClick={() => handleUpdate(task.id)}
+                          className="text-green-600 text-sm"
                         >
-                        Save
+                          Save
                         </button>
 
                         <button
-                        onClick={() => setEditingTaskId(null)}
-                        className="text-gray-500 text-sm"
+                          onClick={() => setEditingTaskId(null)}
+                          className="text-gray-500 text-sm"
                         >
-                        Cancel
+                          Cancel
                         </button>
+                      </div>
+
                     </div>
-                    </div>
-                ) : (
+
+                  ) : (
+
+                    // view mode
                     <div className="flex justify-between items-center">
 
-                    <div>
-                        <p className="font-semibold text-slate-800">
-                        {task.title}
+                      <div>
+                        <p className="font-semibold">{task.title}</p>
+                        <p className="text-sm text-slate-500">
+                          {task.description}
                         </p>
 
-                        <p className="text-sm text-slate-500">
-                        {task.description}
-                        </p>
+                        <div className="text-xs text-slate-400 mt-2">
+                          <p>Created: {formatDate(task.createdAt)}</p>
+                          <p>Updated: {formatDate(task.updatedAt)}</p>
+                        </div>
 
                         {task.assignedToEmail && (
-                        <p className="text-xs text-slate-400 mt-1">
+                          <p className="text-xs text-slate-400 mt-1">
                             Assigned to: {task.assignedToEmail}
-                        </p>
+                          </p>
                         )}
 
                         <span
-                        className={`text-xs px-2 py-1 rounded-full mt-2 inline-block ${statusColor(task.status)}`}
+                          className={`text-xs px-2 py-1 rounded-full mt-2 inline-block ${statusColor(task.status)}`}
                         >
-                        {task.status}
+                          {task.status}
                         </span>
-                    </div>
+                      </div>
 
-                    <div className="flex gap-4 items-center">
-
+                      <div className="flex gap-4">
                         {canEditTask(user, task) && (
-                        <button
+                          <button
                             onClick={() => startEdit(task)}
                             className="text-blue-500 text-sm"
-                        >
+                          >
                             Edit
-                        </button>
+                          </button>
                         )}
 
                         {canDeleteTask(user, task) && (
-                        <button
+                          <button
                             onClick={() => handleDelete(task.id)}
                             className="text-red-500 text-sm"
-                        >
+                          >
                             Delete
-                        </button>
+                          </button>
                         )}
+                      </div>
 
                     </div>
-                    </div>
-                )}
+
+                  )}
 
                 </div>
-            ))}
+              ))}
             </div>
-        )}
+          )}
 
         </div>
 
-
-        {/* PAGINATION */}
-        <div className="flex justify-between items-center mt-6">
-
-          <button
-            disabled={page === 1}
-            onClick={() => setPage(prev => prev - 1)}
-            className="px-4 py-2 bg-slate-200 rounded disabled:opacity-50"
-          >
-            Previous
-          </button>
-
-          <span className="text-sm text-slate-600">
-            Page {page} of {totalPages || 1}
-          </span>
-
-          <button
-            disabled={page >= totalPages}
-            onClick={() => setPage(prev => prev + 1)}
-            className="px-4 py-2 bg-slate-200 rounded disabled:opacity-50"
-          >
-            Next
-          </button>
-
-        </div>
+        {/* pagination component */}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={(newPage) => setPage(newPage)}
+        />
 
       </div>
     </div>

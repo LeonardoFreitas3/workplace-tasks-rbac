@@ -6,18 +6,18 @@ import { AuthContext } from "../context/AuthContext";
 
 interface Props {
   children: ReactNode;
-  requiredRole?: string;
+  requiredRole?: string; // Optional role restriction
 }
 
 export default function ProtectedRoute({ children, requiredRole }: Props) {
   const { user } = useContext(AuthContext);
 
-  // Not logged in
+  // Redirect to login if user is not authenticated
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // Role restriction
+  // Redirect if user does not have the required role
   if (requiredRole && user.role !== requiredRole) {
     return <Navigate to="/tasks" replace />;
   }

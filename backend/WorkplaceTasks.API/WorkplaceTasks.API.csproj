@@ -22,7 +22,6 @@
   <ItemGroup>
     <Folder Include="Data\" />
     <Folder Include="Helpers\" />
-    <Folder Include="Middleware\" />
     <Folder Include="Services\" />
   </ItemGroup>
 

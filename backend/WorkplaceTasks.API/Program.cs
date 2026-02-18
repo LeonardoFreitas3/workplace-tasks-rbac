@@ -70,12 +70,8 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-//
-// ==========================
-// HTTP PIPELINE CONFIGURATION
-// ==========================
-//
 
+// HTTP PIPELINE CONFIGURATION
 // Enable OpenAPI JSON and Scalar UI in development
 if (app.Environment.IsDevelopment())
 {
@@ -86,7 +82,6 @@ if (app.Environment.IsDevelopment())
 
 // Enable HTTPS redirection
 //app.UseHttpsRedirection();
-
 app.UseCors("AllowFrontend");
 
 // Enable authentication middleware
