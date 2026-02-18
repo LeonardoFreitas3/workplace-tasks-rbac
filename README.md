@@ -4,181 +4,141 @@ This project was developed as part of a technical challenge.
 
 It consists of a fullstack application built with:
 
-- Backend: ASP.NET Core (.NET 10) + Entity Framework Core + PostgreSQL
-- Frontend: React + TypeScript + Tailwind CSS (created using vite)
-- Authentication: JWT
-- Authorization: Role-Based Access Control (RBAC)
+-   Backend: ASP.NET Core (.NET 8) + Entity Framework Core + PostgreSQL
+-   Frontend: React + TypeScript + Tailwind CSS (Vite)
+-   Authentication: JWT
+-   Authorization: Role-Based Access Control (RBAC)
 
----
-
-## Overview
-
-The system allows task management with different access levels:
-
-- **Admin**
-- **Manager**
-- **Member**
-
-Each role has different permissions and restrictions, implemented both at API level and in the frontend UI.
-
----
+------------------------------------------------------------------------
 
 ## Backend Setup
 
 ### Requirements
 
-- .NET 8 SDK
-- PostgreSQL
+-   .NET 10 SDK
+-   PostgreSQL
 
 ### Steps
 
-1. Navigate to backend folder: cd backend/WorkplaceTasks.API
+1.  Navigate to backend folder: cd backend/WorkplaceTasks.API
 
-2. Configure `appsettings.json`:
+2.  Configure `appsettings.json` with your PostgreSQL connection string.
 
-Update your PostgreSQL connection string --> "DefaultConnection": "Host=localhost;Port=5432;Database=workplacetasks;Username=postgres;Password=YOUR_PASSWORD"
+3.  Apply migrations: dotnet ef database update
 
+4.  Run the API: dotnet run
 
-3. Apply migrations: run on the termninal 'dotnet ef database update'
+API runs on: http://localhost:5275
 
-
-4. Run the API: run on the terminal 'dotnet run'
-
-The API will run on: https://localhost:7045 or http://localhost:5275
-
-
----
+------------------------------------------------------------------------
 
 ## Frontend Setup
 
 ### Requirements
 
-- Node.js (v18+ recommended)
+-   Node.js (v18+ recommended)
 
 ### Steps
 
-1. Navigate to frontend folder: cd frontend;
+1.  Navigate to frontend folder: cd frontend
 
+2.  Install dependencies: npm install
 
-2. Install dependencies: run on the terminal 'npm install';
-
-
-3. Start development server: run on the terminal 'npm run dev'
+3.  Start development server: npm run dev
 
 Frontend runs on: http://localhost:5173
 
+------------------------------------------------------------------------
 
----
-
-## Authentication & RBAC Testing
+## Instructions to Test RBAC
 
 ### Test Accounts
 
-For the role Admin:  
-Email: admin@example.com
+Admin: admin@example.com\
 Password: 123456
 
-
-For the role Manager:
-Email: manager@example.com
+Manager: manager@example.com\
 Password: 123456
 
-
-For the role Member:
-Email: member@example.com
+Member: member@example.com\
 Password: 123456
 
+### How to Generate JWT
 
----
+Use:
 
-### Role Permissions
+POST /api/Auth/login
 
-#### Admin
-- Full access to all endpoints
-- Create, update, delete any task
-- Assign tasks
-- Manage users (create, delete, change roles)
+Body: { "email": "admin@example.com", "password": "123456" }
 
-#### Manager
-- Create tasks
-- Assign tasks
-- Update any task
-- Delete only tasks they created
-- View users (for assignment purposes)
+Copy the returned token and use it in Authorization header:
 
-#### Member
-- Create tasks
-- View tasks assigned to them or created by them
-- Update tasks they created
-- Update status of tasks assigned to them
-- Delete only tasks they created
+Authorization: Bearer YOUR_TOKEN
 
----
+------------------------------------------------------------------------
+
+## API Endpoints
+
+### Authentication
+
+POST /api/Auth/login\
+Authenticates user and returns JWT token.
+
+------------------------------------------------------------------------
+
+### Tasks
+
+GET /api/Tasks\
+Returns paginated tasks.\
+Optional query params: status, page, pageSize.
+
+POST /api/Tasks\
+Creates a task.\
+Admin and Manager can assign tasks.
+
+PUT /api/Tasks/{id}\
+Updates a task.\
+Members can only update their own tasks or status if assigned.
+
+DELETE /api/Tasks/{id}\
+Deletes a task.\
+Only Admin or task creator allowed.
+
+------------------------------------------------------------------------
+
+### Users
+
+GET /api/Users\
+Admin and Manager can list users.
+
+POST /api/Users\
+Admin only -- create new user.
+
+PUT /api/Users/{id}/role\
+Admin only -- change user role.
+
+DELETE /api/Users/{id}\
+Admin only -- delete user.\
+Cannot delete self or last Admin.
+
+------------------------------------------------------------------------
 
 ## Technical Decisions
 
-- Clean separation between DTOs and Entities
-- RBAC enforced both in API layer and UI
-- JWT-based authentication
-- Pagination implemented server-side
-- Enum-based task status (Pending, InProgress, Done)
-- Secure role validation in controllers
-- Conditional UI rendering based on permissions
+-   Clean separation between Controllers, DTOs and Entities
+-   RBAC enforced server-side and client-side
+-   JWT authentication with role claims
+-   Server-side pagination
+-   Enum-based status and roles
+-   Axios interceptor for automatic token attachment
+-   Reusable pagination component
 
----
+------------------------------------------------------------------------
 
-## Features Implemented
+## Possible Improvements
 
-- JWT authentication
-- Role-based authorization
-- Task creation, editing, deletion
-- Task assignment
-- Server-side pagination
-- Status filtering
-- Responsive UI with Tailwind
-- Empty state UX
-- Protected routes
-
----
-
-## Possible Improvements (If More Time Was Available)
-
-- Add refresh token mechanism
-- Add centralized error handling middleware
-- Add logging layer (Serilog)
-- Add unit and integration tests
-- Add Docker setup
-- Improve UI transitions and animations
-- Add dashboard with statistics
-- Add audit logging (who changed what)
-
----
-
-## Architecture Notes
-
-The project follows a layered architecture:
-
-- Controllers → Application logic entry
-- DTOs → Transport layer
-- EF Core → Data persistence
-- React SPA → Client-side UI
-- Axios → API communication
-
-RBAC is enforced both server-side and client-side to ensure security and proper UX.
-
----
-
-## Final Notes
-
-This implementation prioritizes:
-
-- Clean structure
-- Security
-- Readability
-- Maintainability
-- Clear RBAC rules
-
-Thank you for reviewing this project.
-
-
-
+-   Refresh token mechanism
+-   Global exception middleware
+-   Unit and integration tests
+-   Docker support
+-   CI/CD pipeline
