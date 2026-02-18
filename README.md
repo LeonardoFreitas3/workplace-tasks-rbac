@@ -4,8 +4,8 @@ This project was developed as part of a technical challenge.
 
 It consists of a fullstack application built with:
 
-- Backend: ASP.NET Core (.NET 8) + Entity Framework Core + PostgreSQL
-- Frontend: React + TypeScript + Tailwind CSS
+- Backend: ASP.NET Core (.NET 10) + Entity Framework Core + PostgreSQL
+- Frontend: React + TypeScript + Tailwind CSS (created using vite)
 - Authentication: JWT
 - Authorization: Role-Based Access Control (RBAC)
 
